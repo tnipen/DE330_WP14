@@ -1,16 +1,22 @@
 # Link for checking the available fields:
 # https://apps.ecmwf.int/mars-catalogue/?origin=no-ar-ce&stream=oper&expver=prod&month=jan&year=1993&type=an&class=rr
+# Documentation: https://climate.copernicus.eu/copernicus-arctic-regional-reanalysis-service
 
 description: |
   Copernicus Arctic Regional Reanalysis, East domain.
 
-name: carra_east-rr-an-oper-0001-mars-2p5km-1989-2020-6h-v1
+# name: carra_east-rr-an-oper-0001-mars-2p5km-1989-2023-6h-v1
+name: carra_east-rr-an-oper-0001-mars-2p5km-2020-2020-6h-v1
 
 dates:
-  start: 1990-09-01T06:00:00
-  end: 1990-09-02T06:00:00
-  # end: 2020-12-31T18:00:00
+  # start: 1990-09-01T00:00:00
+  # end: 2023-12-31T18:00:00
+  start: 2020-01-01T00:00:00
+  end: 2020-12-31T18:00:00
   frequency: 6h
+
+build:
+  group_by: daily
 
 input:
   join:
@@ -48,13 +54,14 @@ input:
     - sum:
         params: [tciwv, tciw, tclw, tcolg]
         output: tcw
-  - accumulations:
-      origin: no-ar-ce
-      levtype: sfc
-      class: rr
-      type: an
-      stream: oper
-      param: [tp]
+  # Doesn't work, since to get 6h precip for 12Z and 00Z, we need to sum the 3h precip from 06Z and 09Z runs
+  #- accumulations:
+  #    origin: no-ar-ce
+  #    levtype: sfc
+  #    class: rr
+  #    type: an
+  #    stream: oper
+  #    param: [tp]
 
   - constants:
       template: ${input.join.0.pipe.0.mars}
