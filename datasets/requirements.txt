@@ -1,0 +1,1 @@
+anemoi-datasets@git+https://github.com/metno/anemoi-datasets.git@feature/wz_to_w
