@@ -2,22 +2,53 @@ description: Austrian ReAnalysis
 dates:
   start: 2017-02-01T12:00:00Z
   end: 2017-02-01T12:00:00Z
-  frequency: 1h
+  frequency: 1h                   # Set time steps, min=1hr
 
 input:
   join:
     - grib:
-        path: "data/ara-2p5km/SUBSET_ARA00_0012_00.grb"
-        levtype: sfc
-        # Missing t0 (in the file, but not recognized) and total column water
-        # Missing z and 2r/2d
-        param: [sp, msl, 10u, 10v, 2t, tp]
-    - grib:
-        path: "data/ara-2p5km/SUBSET_ARA00_0012_00.grb"
+        path: data/ara-2p5km/SUBSET_ARA00_*.grb
         levtype: pl
-        param: [t, u, v, z, w, q]
-        # Missing pressure level 50
-        level: [100, 150, 200, 300, 400, 500, 600, 700, 850, 925, 1000]
+        param:
+        - u # U Component of Wind in m/s
+        - v # V Component of Wind in m/s
+        - w # W Component of Wind in Pa/s
+        - t # Temperature in K
+        - q # Specific Humidity in kg/kg
+        - z # Geopotential in m2/s2
+        level:
+        ## - 50 # Available only after 2019 in ARA dataset!
+        - 100
+        - 150
+        - 200
+        - 300
+        - 400 
+        - 500 
+        - 600
+        - 700
+        - 850
+        - 925
+        - 1000
+    - pipe:
+      - grib:
+          path: data/ara-2p5km/SUBSET_ARA00_*.grb
+          levtype: sfc
+          param:
+          - 10u  # 10m U Component of Wind in m/s
+          - 10v  # 10m V Component of Wind in m/s
+          - 100u # 100m U Component of Wind in m/s
+          - 100v # 100m V Component of Wind in m/s
+          - sp   # Surface Pressure in Pa
+          - msl  # Mean Sea Level Pressure in Pa
+          - tp   # Rain from Init in kg/m2 (ARA) ## DOUBLE CHECK THE TIMESTEPS FOR ACCUMMULATION!
+          - 2t   # 2m Temperature in K
+          - skt  # Skin/sea-surface temperature in K
+          - z    # Surface geopotential in m2/s2
+          - dpt  # 2m dewpoint temp in K
+          - tcw  # Total Column Water in kg/m2
+      - rename:
+          param:
+            dpt: 2d
     - constants:
         template: ${input.join.0.grib}
         param:
@@ -30,6 +61,5 @@ input:
         - sin_julian_day
         - sin_local_time
         - insolation
-
 build:
   group_by: 6
