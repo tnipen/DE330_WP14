@@ -1,0 +1,104 @@
+# Link for checking the available fields:
+# https://apps.ecmwf.int/mars-catalogue/?origin=no-ar-ce&stream=oper&expver=prod&month=jan&year=1993&type=an&class=rr
+# Documentation: https://climate.copernicus.eu/copernicus-arctic-regional-reanalysis-service
+
+description: |
+  Copernicus Arctic Regional Reanalysis, East domain.
+
+# name: carra_east-rr-an-oper-0001-mars-2p5km-1989-2023-6h-v1
+name: carra2-rr-an-oper-0001-mars-2p5km-2020-2021-6h-v1
+
+dates:
+  # start: 1990-09-01T00:00:00
+  # end: 2023-12-31T18:00:00
+  start: 2020-09-01T06:00:00
+  end: 2021-08-31T18:00:00
+  frequency: 6h
+
+build:
+  group_by: 1
+
+output:
+  # Each timestamp is 12 GB, so we need to chunk variables
+  chunking: {dates: 1, variables: 10}
+
+input:
+  join:
+  - pipe:
+    - mars:
+        origin: no-ar-pa
+        levtype: pl
+        class: rr
+        type: an
+        stream: oper
+        # 260238 is geometric vertical velocity
+        param: [r, t, ws, wdir, z, 260238]
+        level: [50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 850, 925, 1000]
+        # level: [50]
+    - speeddir_to_uv:
+        wind_speed: ws
+        wind_dir: wdir
+    - rotate_winds:
+        x_wind: u
+        y_wind: v
+    - pressure_level_relative_humidity_to_specific_humidity:
+        t: t
+        rh: r
+    - wz_to_w:
+        wz: wz
+        t: t
+  - pipe:
+    - mars:
+        origin: no-ar-pa
+        levtype: sfc
+        class: rr
+        type: an
+        stream: oper
+        # tciwv, tciw, tclw, tcolg are 78, 79, 260001, 260057
+        param: [sp, msl, 10u, 10v, 2t, lsm, sp, skt, 78, 79, 260001, 260057, orog, 2r, tcc, lcc, mcc, hcc]
+    - orog_to_z:
+        orog: orog
+    - single_level_relative_humidity_to_dewpoint:
+        t: 2t
+        rh: 2r
+        td: 2d
+    - sum:
+        params: [tciwv, tciw, tclw, tcolg]
+        output: tcw
+  # TODO: , ssrd, strd
+  - concat:
+    - dates:
+        start: 2020-09-01T12:00:00
+        end: 2021-08-31T12:00:00
+        frequency: 12
+      accumulations:
+        origin: no-ar-pa
+        accumulation_period: [6, 12]
+        levtype: sfc
+        class: rr
+        stream: oper
+        param: ["tp"]
+    - dates:
+        start: 2020-09-01T06:00:00
+        end: 2021-08-31T18:00:00
+        frequency: 12
+      accumulations:
+        origin: no-ar-pa
+        accumulation_period: 6
+        levtype: sfc
+        class: rr
+        stream: oper
+        param: ["tp"]
+
+  - constants:
+      template: ${input.join.0.pipe.0.mars}
+      param:
+      - cos_latitude
+      - cos_longitude
+      - sin_latitude
+      - sin_longitude
+      - cos_julian_day
+      - cos_local_time
+      - sin_julian_day
+      - sin_local_time
+      - insolation
