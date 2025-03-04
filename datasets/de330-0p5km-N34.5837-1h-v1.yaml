@@ -1,0 +1,47 @@
+description: DE330 forecast run at 500m resolution centered off the coast of Italy
+dates:
+  start: 2024-08-11T00:00:00Z
+  end: 2024-08-11T23:00:00Z
+  frequency: 1h
+
+input:
+  join:
+    - pipe:
+      - grib:
+          path: "/scratch/project_465000527/jbremnes/DE330_archive/AROME/500/N34.5837/2024/08/11/00/fc_2024081100+0{date:strftime(%H)}h.grib"
+          levtype: sfc
+          # Missing t0 (in the fil, but not recognized) and total column water
+          # Missing tp, but we have tirf, which is probably the same, but it is not recognized
+          param: [sp, msl, 10u, 10v, 2t, z, 2r]
+      - single_level_relative_humidity_to_dewpoint:
+          t: 2t
+          rh: 2r
+          td: 2d
+    - pipe:
+      - grib:
+          path: "/scratch/project_465000527/jbremnes/DE330_archive/AROME/500/N34.5837/2024/08/11/00/fc_2024081100+0{date:strftime(%H)}h.grib"
+          levtype: pl
+          param: [t, u, v, z, wz, r]
+          level: [50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 850, 925, 1000]
+      - pressure_level_relative_humidity_to_specific_humidity:
+          t: t
+          rh: r
+      - wz_to_w:
+          wz: wz
+          t: t
+    - constants:
+        template: ${input.join.0.pipe.0.grib}
+        param:
+        - cos_latitude
+        - cos_longitude
+        - sin_latitude
+        - sin_longitude
+        - cos_julian_day
+        - cos_local_time
+        - sin_julian_day
+        - sin_local_time
+        - insolation
+
+# Don't write all times at the same time, or we would need a lot of memory (33 GB)
+build:
+  group_by: 6
